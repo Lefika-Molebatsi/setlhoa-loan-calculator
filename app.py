@@ -1,121 +1,84 @@
 import streamlit as st
-import numpy_financial as npf
 import pandas as pd
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="Setlhoa Cash Solutions - Loan Calculator",
+    page_title="Setlhoa Cash Solutions - Pawn Calculator",
     page_icon="💰",
     layout="centered"
 )
 
 st.title("💰 Setlhoa Cash Solutions")
-st.subheader("Pawn & Loan Calculator")
-st.write("Calculate monthly installments, tier rules, and repayment schedules.")
+st.subheader("Pawn & Loan Valuation Calculator")
+st.write("Determine maximum loan offers based on item valuation and view 30-day repayment schedules.")
 
 st.markdown("---")
 
 # --- USER INPUTS ---
+is_vehicle = st.checkbox("🚗 Pawn & Park (Vehicle Loan)", value=False)
+
 col1, col2 = st.columns(2)
 
 with col1:
-    is_vehicle = st.checkbox("🚗 Pawn & Park (Vehicle Loan)", value=False)
-    principal = st.number_input(
-        "Loan Amount (BWP):", 
+    item_type = "Vehicle" if is_vehicle else st.selectbox(
+        "Asset Category:",
+        ["Electronics", "Furniture", "Machinery", "General Goods"]
+    )
+    
+    second_hand_value = st.number_input(
+        "2nd Hand Value of Item (BWP):", 
         min_value=100, 
-        max_value=100000, 
-        value=3500, 
-        step=100
+        max_value=500000, 
+        value=10000, 
+        step=500
     )
 
-# --- TIER LOGIC & DETERMINATION ---
-if is_vehicle:
-    tier_name = "Tier 4: Vehicle Pawn & Park"
-    rate = 0.15  # 15% flat rate per month
-    min_months = 1
-    max_months = 1  # Issued as 30-day renewable contract
-    rate_type = "Flat Monthly + Storage"
-else:
-    if principal < 3500:
-        tier_name = "Tier 1: Micro Loan"
-        rate = 0.30  # 30% flat rate
-        min_months = 1
-        max_months = 1
-        rate_type = "Flat Rate (30 Days)"
-    elif 3500 <= principal <= 10000:
-        tier_name = "Tier 2: Medium Loan"
-        rate = 0.15  # 15% amortized
-        min_months = 2
-        max_months = 3
-        rate_type = "Monthly Amortized"
-    elif 10100 <= principal <= 20000:
-        tier_name = "Tier 3: Major Loan"
-        rate = 0.10  # 10% amortized
-        min_months = 3
-        max_months = 6
-        rate_type = "Monthly Amortized"
-    else:
-        tier_name = "Custom / Special Capital Tier"
-        rate = 0.10
-        min_months = 1
-        max_months = 12
-        rate_type = "Monthly Amortized"
+# --- 40% LTV LOAN CALCULATION ---
+ltv_rate = 0.40
+loan_amount = second_hand_value * ltv_rate
 
 with col2:
-    if min_months == max_months:
-        term_months = st.number_input("Loan Term (Months):", value=min_months, disabled=True)
-    else:
-        term_months = st.slider("Loan Term (Months):", min_value=min_months, max_value=max_months, value=min_months)
+    st.metric(
+        label="Calculated Loan Amount (40% LTV)", 
+        value=f"P {loan_amount:,.2f}"
+    )
 
-# --- DISPLAY TIER SUMMARY ---
-st.info(f"**Applied Structure:** {tier_name} | **Rate:** {rate * 100:.1f}% ({rate_type})")
+# --- INTEREST LOGIC ---
+if is_vehicle:
+    interest_rate = 0.15  # 15% flat for cars
+    tier_label = "Vehicle Pawn & Park (15% Monthly)"
+else:
+    interest_rate = 0.30  # 30% flat for electronics, furniture, machinery
+    tier_label = f"Standard Pawn - {item_type} (30% Monthly)"
 
-# --- CALCULATION ENGINE ---
+# --- REPAYMENT BREAKDOWN ---
 st.markdown("---")
 st.header("📊 Repayment Breakdown")
+st.info(f"**Applied Asset Rule:** {tier_label}")
+
+interest_due = loan_amount * interest_rate
+total_payoff = loan_amount + interest_due
+
+col_a, col_b, col_c = st.columns(3)
+
+col_a.metric(label="Loan Principal", value=f"P {loan_amount:,.2f}")
+col_b.metric(label="Total Interest (30 Days)", value=f"P {interest_due:,.2f}")
+col_c.metric(label="Total Payoff Due (Day 30)", value=f"P {total_payoff:,.2f}")
+
+st.markdown("---")
+
+# --- EXTENSION POLICY & OPERATIONAL RULES ---
+st.subheader("📌 Loan Renewal & Extension Policy")
 
 if is_vehicle:
-    monthly_interest = principal * rate
-    st.metric(label="Monthly Interest Due", value=f"P {monthly_interest:,.2f}")
-    st.write("**Note:** Storage fees (e.g., P500/month) are billed separately. Renewable for up to 3 extensions (90 days).")
-
-elif tier_name == "Tier 1: Micro Loan":
-    total_interest = principal * rate
-    total_due = principal + total_interest
-    
-    col_a, col_b = st.columns(2)
-    col_a.metric(label="Total Interest (30 Days)", value=f"P {total_interest:,.2f}")
-    col_b.metric(label="Total Payoff Due (Day 30)", value=f"P {total_due:,.2f}")
-
+    st.warning(
+        f"**Vehicle Extension Rule:** To extend for an additional 30 days, the customer must pay **P {interest_due:,.2f}** (15% interest) + applicable monthly storage fees. "
+        "Interest-only extensions permitted for a maximum of 3 renewals (90 days total)."
+    )
 else:
-    # Monthly Amortized Calculation (PMT)
-    pmt = npf.pmt(rate, term_months, -principal)
-    total_repaid = pmt * term_months
-    total_interest = total_repaid - principal
-    
-    col_a, col_b, col_c = st.columns(3)
-    col_a.metric(label="Monthly Installment", value=f"P {pmt:,.2f}")
-    col_b.metric(label="Total Interest Earned", value=f"P {total_interest:,.2f}")
-    col_c.metric(label="Total Amount Repaid", value=f"P {total_repaid:,.2f}")
-    
-    # Amortization Table
-    st.subheader("📅 Month-by-Month Schedule")
-    schedule = []
-    balance = principal
-    
-    for month in range(1, term_months + 1):
-        interest_payment = balance * rate
-        principal_payment = pmt - interest_payment
-        balance -= principal_payment
-        schedule.append({
-            "Month": month,
-            "Installment (BWP)": f"P {pmt:,.2f}",
-            "Principal Paid": f"P {principal_payment:,.2f}",
-            "Interest Paid": f"P {interest_payment:,.2f}",
-            "Remaining Balance": f"P {max(0, balance):,.2f}"
-        })
-    
-    df = pd.DataFrame(schedule)
-    st.dataframe(df, use_container_width=True)
+    st.warning(
+        f"**Standard Extension Rule:** To extend for an additional 30 days, the customer must pay **P {interest_due:,.2f}** (30% interest fee). "
+        "Extensions do not reduce the principal balance."
+    )
 
-st.caption("Setlhoa Cash Solutions © Internal Pawn Calculator")
+st.caption("Setlhoa Cash Solutions © Valuation & Pawn Calculator")
