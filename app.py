@@ -78,16 +78,18 @@ st.write(
 )
 
 # Format the message text neatly for WhatsApp
+# Format the message text neatly for WhatsApp
+collateral_name = "Vehicle (Pawn & Park)" if is_vehicle else item_type
+
 whatsapp_message = f"""Hi! Here is your loan quotation from Setlhoa Cash Solutions:
 
-📦 Collateral: {asset_category} 
+📦 Collateral: {collateral_name}
 💰 Loan Principal: P {loan_amount:,.2f}
-📈 Interest: P {interest_due:,.2f}
+📈 Interest (30 Days): P {interest_due:,.2f}
 💵 Total Payoff Due: P {total_payoff:,.2f}
 📅 Exact Due Date: {formatted_due_date}
 
 Please let us know if you would like to proceed!"""
-
 # Display inside a text box that is easy to select and copy
 st.text_area(
     label="Click inside the box to select and copy:",
