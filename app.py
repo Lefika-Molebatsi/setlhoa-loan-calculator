@@ -71,13 +71,13 @@ col_b.metric(label="Total Interest (30 Days)", value=f"P {interest_due:,.2f}")
 col_c.metric(label="Total Payoff Due (Day 30)", value=f"P {total_payoff:,.2f}")
 col_d.metric(label="Exact Due Date", value=formatted_due_date)
 # --- WHATSAPP QUICK-COPY MESSAGE ---
-    st.markdown("")
-    st.markdown("### 💬 WhatsApp Quote for Customer")
+st.markdown("")
+st.markdown("### 💬 WhatsApp Quote for Customer")
 
-    collateral_name = "Vehicle (Pawn & Park)" if is_vehicle else item_type
-    rate_percentage = int(interest_rate * 100)
+collateral_name = "Vehicle (Pawn & Park)" if is_vehicle else item_type
+rate_percentage = int(interest_rate * 100)
 
-    whatsapp_message = f"""Hi! Here is your loan quotation from Setlhoa Cash Solutions:
+whatsapp_message = f"""Hi! Here is your loan quotation from Setlhoa Cash Solutions:
 
 📦 Collateral: {collateral_name}
 💰 Loan Principal: P {loan_amount:,.2f}
@@ -87,11 +87,12 @@ col_d.metric(label="Exact Due Date", value=formatted_due_date)
 
 Please let us know if you would like to proceed!"""
 
-    st.text_area(
-        label="Click inside to copy and paste directly into WhatsApp:",
-        value=whatsapp_message,
-        height=170,
-    )
+st.text_area(
+    label="Click inside to copy and paste directly into WhatsApp:",
+    value=whatsapp_message,
+    height=170,
+)
+
 
 st.markdown("---")
 
